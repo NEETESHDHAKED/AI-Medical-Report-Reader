@@ -1,1 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Medical Report Reader</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family: 'Segoe UI', sans-serif;}
+body{background:#f4f7fb; display:flex; justify-content:center; padding:20px;}
+.container{width:100%; max-width:750px; background:white; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.1); overflow:hidden;}
+.header{background:#0f172a; color:white; padding:20px; text-align:center;}
+.header h1{font-size:22px;}
+.header p{opacity:0.7; font-size:13px; margin-top:4px;}
+.chat-box{height:65vh; overflow-y:auto; padding:20px; background:#f8fafc;}
+.msg{margin-bottom:15px; padding:12px 15px; border-radius:12px; max-width:85%; line-height:1.5; white-space:pre-wrap;}
+.user{ background:#0f172a; color:white; margin-left:auto; }
+.ai{ background:white; border:1px solid #e2e8f0; color:#1e293b; }
+.input-area{padding:15px; border-top:1px solid #e2e8f0; display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+#file-preview{width:100%; display:none;}
+#file-preview img{max-width:100px; border-radius:8px; margin-bottom:10px;}
+input[type="text"]{flex:1; padding:12px; border-radius:10px; border:1px solid #cbd5e1; outline:none;}
+button{padding:12px 18px; border:none; border-radius:10px; background:#0f172a; color:white; cursor:pointer; font-weight:600;}
+button:hover{opacity:0.9;}
+.upload-btn{background:#e2e8f0; color:#0f172a;}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🩺 AI Medical Report Reader</h1>
+        <p>Upload Report Image/PDF & Get Simple Explanation in Hindi</p>
+    </div>
+    <div class="chat-box" id="chatBox">
+        <div class="msg ai">Namaste! Apni Medical Report upload karo ya type karo, main aasan bhasha me samjha dunga. <br><br> <b>Note: I am AI, not a Doctor.</b></div>
+    </div>
+    <div class="input-area">
+        <div id="file-preview"></div>
+        <input type="file" id="fileInput" accept="image/*,.pdf" hidden>
+        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">📎 Upload</button>
+        <input type="text" id="userInput" placeholder="Yaha message likho...">
+        <button onclick="sendMsg()">Send</button>
+    </div>
+</div>
 
+<script>
+let selectedFile = null;
+const fileInput = document.getElementById('fileInput');
+const previewDiv = document.getElementById('file-preview');
+
+fileInput.onchange = (e) => {
+    selectedFile = e.target.files[0];
+    if(selectedFile){
+        previewDiv.style.display = 'block';
+        previewDiv.innerHTML = `<small>Selected: ${selectedFile.name} <span onclick="clearFile()" style="color:red;cursor:pointer"> [x]</span></small>`;
+    }
+}
+function clearFile(){
+    selectedFile = null; fileInput.value = ""; previewDiv.style.display = 'none'; previewDiv.innerHTML = "";
+}
+
+async function sendMsg(){
+    const input = document.getElementById('userInput');
+    const chatBox = document.getElementById('chatBox');
+    const msg = input.value.trim();
+    if(!msg &&!selectedFile) return;
+
+    chatBox.innerHTML += `<div class="msg user">${msg || 'Report uploaded'}</div>`;
+    input.value = "";
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    const formData = new FormData();
+    formData.append("message", msg);
+    if(selectedFile) formData.append("file", selectedFile);
+
+    const tempId = Date.now();
+    chatBox.innerHTML += `<div class="msg ai" id="${tempId}">Report padh raha hu...</div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    try{
+        const res = await fetch("/chat", { method: "POST", body: formData });
+        const data = await res.json();
+        document.getElementById(tempId).innerText = data.reply;
+    }catch(err){
+        document.getElementById(tempId).innerText = "Error: Server se connect nahi ho pa raha";
+    }
+    clearFile();
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+</script>
+</body>
+</html>
